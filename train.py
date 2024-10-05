@@ -34,7 +34,7 @@ def parse_option():
                         help='max_len of sentence')
     parser.add_argument('--ckpt', type=str, default='100_512_1000.pth',
                         help='path to pre-trained model')
-    parser.add_argument('--model_save_path', type=str, default="save_model/ours_quora")
+    parser.add_argument('--model_save_path', type=str, default="save_model/")
     parser.add_argument('--infer_save_path', type=str, default="text.txt")
 
     opt = parser.parse_args()
@@ -58,7 +58,8 @@ def train_epoch(seq2seq,stex,optimizer,dataloader, epoch):
     closs_arr = []
     sloss_arr = []
     count = 0
-    for src,in_len,trg,trg_input,ou_len,bert_src,bert_trg,bert_sim,content_trg,content_len in dataloader:
+
+    for src,in_len,trg,trg_input,ou_len,bert_src,bert_trg,bert_sim,content_trg,content_len in tqdm(dataloader, desc=f"Training epoch {epoch}"):
         optimizer.zero_grad()
         src,in_len, trg, trg_input, ou_len, bert_src, bert_trg, bert_sim,content_trg,content_len=\
             src.to(device),in_len.to(device),trg.to(device),trg_input.to(device),ou_len.to(device)\
@@ -96,6 +97,7 @@ def train_epoch(seq2seq,stex,optimizer,dataloader, epoch):
     loss3 = np.mean(sloss_arr)
     print("epoch: ", epoch,loss1,loss2,loss3)
     return [loss1,loss2,loss3]
+
 def eval_epoch(seq2seq,stex,dataloader, epoch):
     seq2seq.eval()
     seq2seq.decoder.mode = "eval"
@@ -104,7 +106,7 @@ def eval_epoch(seq2seq,stex,dataloader, epoch):
     ppl_arr = []
     nll_arr = []
     with torch.no_grad():
-        for src, in_len, trg, trg_input, ou_len, bert_src, bert_trg, bert_sim,content_trg,content_len in dataloader:
+        for src, in_len, trg, trg_input, ou_len, bert_src, bert_trg, bert_sim,content_trg,content_len in tqdm(dataloader, desc=f"Evaluating epoch {epoch}"):
             src, in_len, trg, trg_input, ou_len, bert_src, bert_trg, bert_sim,content_trg,content_len = \
                 src.to(device), in_len.to(device), trg.to(device), trg_input.to(device), ou_len.to(device) \
                     , bert_src.to(device), bert_trg.to(device), bert_sim.to(device),content_trg.to(device),content_len.to(device)
@@ -126,6 +128,7 @@ if __name__ == '__main__':
     opt = parse_option()
     with open(opt.config) as f:
         config = json.load(f)
+    
     train_set = STdata("train",dataroot=opt.data_folder,max_len=opt.max_len)
     train_loader = DataLoader(train_set, batch_size=opt.batch_size, shuffle=True)
 

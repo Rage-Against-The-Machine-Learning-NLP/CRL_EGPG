@@ -18,13 +18,19 @@ class Encoder(nn.Module):
                           batch_first=True, dropout=(0 if num_layers == 1 else drop_out), bidirectional=bidirectional)
 
     def forward(self, seq_arr, seq_len):
-
+        seq_len = seq_len.to(seq_arr.device)
+        
         seq_len_sorted, index = seq_len.sort(dim=-1, descending=True)
         seq_arr_sorted = seq_arr.index_select(0, index)
-        padded_input = pack_padded_sequence(seq_arr_sorted, seq_len_sorted, batch_first=True)
+        
+        seq_len_sorted_cpu = seq_len_sorted.cpu()
+        
+        padded_input = pack_padded_sequence(seq_arr_sorted, seq_len_sorted_cpu, batch_first=True)
         output, hidden = self.rnn(padded_input)
         output, _ = pad_packed_sequence(output, batch_first=True)
         hidden = torch.cat(tuple(hidden), dim=-1)
+        
+        # Reorder output and hidden states
         _, inverse_index = index.sort(dim=-1, descending=False)
         output = output.index_select(0, inverse_index)
         hidden = hidden.index_select(0, inverse_index)

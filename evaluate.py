@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from modules.utils import loadpkl
 from modules.datasets import STdata
-from modules.Seq2Seq2 import Seq2Seq
+from modules.Seq2Seq import Seq2Seq
 from modules.StyleExtractor import StyleExtractor
 from transformers import BertTokenizer
 import warnings
@@ -18,6 +18,9 @@ import os
 import argparse
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+def convert_ids_to_words(idx2word, id_tensor):
+    return [idx2word.get(id.item(), '<UNK>') for id in id_tensor if id.item() != 0]
+
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
 
@@ -69,7 +72,7 @@ with torch.no_grad():
     arr = []
     examplar_list =[]
     count = 0
-    for src,in_len,trg,trg_input,ou_len,bert_src,bert_trg,bert_sim,content_trg,content_len in test_loader:
+    for src,in_len,trg,trg_input,ou_len,bert_src,bert_trg,bert_sim,content_trg,content_len in tqdm(test_loader, desc=f"evaluating.."):
         src, in_len, trg, trg_input, ou_len, bert_src, bert_trg, bert_sim,content_trg,content_len = \
             src.to(device), in_len.to(device), trg.to(device), trg_input.to(device), ou_len.to(device) \
                 , bert_src.to(device), bert_trg.to(device), bert_sim.to(
@@ -100,14 +103,14 @@ with torch.no_grad():
         arr.append(temp_arr[right])
         count+=1
 
-    filename = os.path.join(opt.model_save_path,"trg_gen"+str(opt.idx)+".txt")
+    filename = os.path.join(opt.model_save_path, f"trg_gen{opt.idx}.txt")
     if os.path.exists(filename):
         os.remove(filename)
     with open(filename, 'a') as f:
         for bat in arr:
-            ss = seq2seq.getword(idx2word, bat)
-            for s in ss:
-                f.write(' '.join(s))
+            for sequence in bat:
+                words = convert_ids_to_words(idx2word, sequence)
+                f.write(' '.join(words))
                 f.write('\n')
     exm_file = os.path.join(opt.model_save_path,"exm"+str(opt.idx)+".txt")
     with open(exm_file,'a') as f:

@@ -38,17 +38,22 @@ class Seq2Seq(nn.Module):
         self.para = list(filter(lambda x: x.requires_grad, self.parameters()))
         self.opt = Adam(params=self.para, lr=config_dict.get('lr', 1e-4))
 
-    def forward(self, seq_arr, seq_len,style_emb, response=None, decoder_input=None, max_seq_len=16):
+    def forward(self, seq_arr, seq_len, style_emb, response=None, decoder_input=None, max_seq_len=16):
+        device = seq_arr.device
+        seq_arr = seq_arr.to(device)
+        seq_len = seq_len.to(device)
+        style_emb = style_emb.to(device)
+        if response is not None:
+            response = response.to(device)
+        if decoder_input is not None:
+            decoder_input = decoder_input.to(device)
 
         encode_mask = (seq_arr == 0).byte()
         seq_arr = self.emb_layer(seq_arr)
         encode_output, encode_hidden = self.encoder_layer(seq_arr, seq_len)
         all_output = self.decoder(encode_hidden, encode_output, encode_mask, response,
-                                  decoder_input,style_emb,max_seq_len=max_seq_len)
-        return all_output,encode_hidden
-
-
-
+                                  decoder_input, style_emb, max_seq_len=max_seq_len)
+        return all_output, encode_hidden
 
 
    
