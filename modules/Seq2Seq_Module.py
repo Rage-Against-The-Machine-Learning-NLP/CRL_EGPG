@@ -48,7 +48,9 @@ class ScaleDotAttention(nn.Module):
             attn_weight += bias
 
         mask = mask[:,:attn_weight.shape[-1]]
-        attn_weight.masked_fill(mask, - float('inf'))
+        # Convert mask to boolean type
+        mask = mask.bool()
+        attn_weight.masked_fill_(mask, float('-inf'))
         attn_weight = attn_weight.softmax(dim=-1)
         attn_out = (attn_weight.unsqueeze(dim=2) * v).sum(dim=1)
         return attn_out, attn_weight

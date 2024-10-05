@@ -141,8 +141,6 @@ if __name__ == '__main__':
     params = list(seq2seq.parameters()) + list(stex.parameters())
     optimizer = Adam(params,lr=opt.lr)
 
-    print("Exit here 1")
-    exit()
 
     if not os.path.exists(opt.model_save_path):
         os.makedirs(opt.model_save_path)
