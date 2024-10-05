@@ -44,8 +44,8 @@ def load_glove_model(File):
     print(len(gloveModel)," words loaded!")
     return gloveModel
 
-def initialise_word_embedding(File="/gds/hryang/projdata11/hryang/data/visual_question_answering/glove/glove.6B.300d.txt"):
-    with open("./data2/word2idx.pkl",'rb') as f:
+def initialise_word_embedding(File="./glove/glove.6B.300d.txt"):
+    with open("./data2/word2idx.pkl",'rb') as f: # always takes from data2 dataset and not data1
         vocab = pickle.load(f)
     glove_emb = load_glove_model(File)
     word_emb = np.zeros((len(vocab),300))
