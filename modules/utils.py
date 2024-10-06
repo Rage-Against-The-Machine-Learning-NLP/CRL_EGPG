@@ -45,7 +45,7 @@ def load_glove_model(File):
     return gloveModel
 
 def initialise_word_embedding(File="./glove/glove.6B.300d.txt"):
-    with open("./data/word2idx.pkl",'rb') as f: # always takes from data2 dataset and not data1
+    with open("./data2/word2idx.pkl",'rb') as f: # always takes from data2 dataset and not data1
         vocab = pickle.load(f)
     glove_emb = load_glove_model(File)
     word_emb = np.zeros((len(vocab),300))
