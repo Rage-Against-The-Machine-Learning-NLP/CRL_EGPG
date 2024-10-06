@@ -24,3 +24,4 @@ change to the corresponding path
 ## How to generate multiple paraphrases for one input
 You can modify `generate.py` or just run </br>
 `python generate.py` 
+test
