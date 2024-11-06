@@ -92,7 +92,9 @@ with torch.no_grad():
         right = -1
 
         max_cover = -1
-
+        # aaa: (1-sized) batch of predicted sentence based on an exemplar
+        # aaa[0]: predicted sentence based on an exemplar
+        # varun is dumb
         for aa,aaa in enumerate(temp_arr):
 
             if len(set(normal_output[count]) & set([ii.item() for ii in aaa[0]]))/len(set(normal_output[count]))>max_cover:
