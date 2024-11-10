@@ -1,10 +1,8 @@
 import json
 import pickle
 from tqdm import tqdm
-
 import torch
 from torch.utils.data import DataLoader
-
 from modules.utils import loadpkl
 from modules.datasets import STdata
 from modules.Seq2Seq import Seq2Seq
@@ -30,7 +28,7 @@ def parse_option():
                         help='max_len of sentence')
     parser.add_argument('--model_save_path', type=str, default="save_model/ours_quora")
     parser.add_argument('--idx', type=int, default=45)
-
+    parser.add_argument('--bert_model', type=str, default="bert")
     opt = parser.parse_args()
 
     if opt.dataset == 'quora':
@@ -45,11 +43,11 @@ with open(opt.config) as f:
     config = json.load(f)
 
 
-test_set = STdata("test", dataroot=opt.data_folder, max_len=15)
+test_set = STdata("test", dataroot=opt.data_folder, max_len=15, bert_type=opt.bert_model)
 test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
 
 seq2seq = Seq2Seq(config).to(device)
-stex = StyleExtractor(config).to(device)
+stex = StyleExtractor(bert_type=opt.bert_model).to(device)
 
 seq2seq.load_state_dict(torch.load(os.path.join(opt.model_save_path,"seq2seq"+str(opt.idx)+".pkl")))
 stex.load_state_dict(torch.load(os.path.join(opt.model_save_path,"stex"+str(opt.idx)+".pkl")))
@@ -62,9 +60,16 @@ with open(os.path.join(opt.data_folder,'test/sim.pkl'),'rb') as f:
     sim = pickle.load(f)
 with open(os.path.join(opt.data_folder,'idx2word.pkl'), 'rb') as f:
     idx2word = pickle.load(f)
-with open(os.path.join(opt.data_folder,'test/bert_trg.pkl'),'rb') as f:
-    bert_output = pickle.load(f)
 
+# Modified part to load appropriate bert output file
+if opt.bert_model == "bert":
+    bert_output_path = os.path.join(opt.data_folder,'test/bert_trg.pkl')
+else:
+    bert_output_path = os.path.join(opt.data_folder, f'test/test_trg_{opt.bert_model}_ids.pkl')
+    
+with open(bert_output_path,'rb') as f:
+    bert_output = pickle.load(f)
+    
 with open(os.path.join(opt.data_folder,'test/trg.pkl'),'rb') as f:
     normal_output = pickle.load(f)
 

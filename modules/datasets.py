@@ -2,12 +2,11 @@ from torch.utils.data import Dataset
 from modules.utils import loadpkl
 import os
 import torch
-from transformers import BertTokenizer
 import random
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class STdata(Dataset):
-    def __init__(self,name,dataroot="data",max_len=15):
+    def __init__(self,name,dataroot="data",max_len=15, bert_type="bert"):
         super(STdata,self).__init__()
         assert name in ['train','valid','test']
         self.name = name
@@ -20,8 +19,12 @@ class STdata(Dataset):
         output_path = os.path.join(dataroot,name+'/trg.pkl')
         sim_path = os.path.join(dataroot,name+'/sim.pkl')
 
-        bert_input_path = os.path.join(dataroot,name+'/bert_src.pkl')
-        bert_output_path = os.path.join(dataroot,name+'/bert_trg.pkl')
+        if bert_type == 'bert':
+            bert_input_path = os.path.join(dataroot,name+'/bert_src.pkl')
+            bert_output_path = os.path.join(dataroot,name+'/bert_trg.pkl')
+        else:
+            bert_input_path = os.path.join(dataroot,name+f'/{name}_src_{bert_type}_ids.pkl')
+            bert_output_path = os.path.join(dataroot,name+f'/{name}_trg_{bert_type}_ids.pkl')
 
         self.input_s = loadpkl(input_path)
         self.output_s = loadpkl(output_path)
@@ -32,7 +35,6 @@ class STdata(Dataset):
         self.max_len = max_len
 
     def __getitem__(self,index):
-        # seq2seq data_quora format
         input_s = self.input_s[index]
         output_s = self.output_s[index]
 
@@ -61,18 +63,17 @@ class STdata(Dataset):
 
         if ou_len>self.max_len:
             trg[0:self.max_len] = torch.tensor(output_s[0:self.max_len])
-            trg[self.max_len] = 3 #EOS
+            trg[self.max_len] = 3
             trg_input[1:self.max_len+1] = torch.tensor(output_s[0:self.max_len])
             trg_input[0] = 2
             ou_len = self.max_len+1
         else:
             trg[0:ou_len] = torch.tensor(output_s)
-            trg[ou_len] = 3  # EOS
+            trg[ou_len] = 3
             trg_input[1:ou_len+1] = torch.tensor(output_s)
             trg_input[0] = 2
             ou_len = ou_len+1
 
-        # bert data_quora format
         bert_in = self.bert_input[index]
         bert_out = self.bert_output[index]
         sim = self.bert_output[random.choice(self.sim_s[index])]
@@ -88,4 +89,3 @@ class STdata(Dataset):
 
     def __len__(self):
         return len(self.input_s)
-

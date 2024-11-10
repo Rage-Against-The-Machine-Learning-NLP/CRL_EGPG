@@ -36,7 +36,7 @@ def parse_option():
                         help='path to pre-trained model')
     parser.add_argument('--model_save_path', type=str, default="save_model/")
     parser.add_argument('--infer_save_path', type=str, default="text.txt")
-
+    parser.add_argument('--bert_model', type=str, default="bert")
     opt = parser.parse_args()
 
     if opt.dataset == 'quora':
@@ -129,17 +129,18 @@ if __name__ == '__main__':
     with open(opt.config) as f:
         config = json.load(f)
     
-    train_set = STdata("train",dataroot=opt.data_folder,max_len=opt.max_len)
+    print("config bert: ", opt.bert_model)
+    train_set = STdata("train",dataroot=opt.data_folder,max_len=opt.max_len, bert_type=opt.bert_model)
     train_loader = DataLoader(train_set, batch_size=opt.batch_size, shuffle=True)
 
-    valid_set = STdata("valid",dataroot=opt.data_folder,max_len=opt.max_len)
+    valid_set = STdata("valid",dataroot=opt.data_folder,max_len=opt.max_len, bert_type=opt.bert_model)
     valid_loader = DataLoader(valid_set, batch_size=opt.batch_size, shuffle=False)
 
-    test_set = STdata("test",dataroot=opt.data_folder,max_len=opt.max_len)
+    test_set = STdata("test",dataroot=opt.data_folder,max_len=opt.max_len, bert_type=opt.bert_model)
     test_loader = DataLoader(test_set, batch_size=opt.batch_size, shuffle=False)
 
     seq2seq = Seq2Seq(config).to(device)
-    stex = StyleExtractor(config).to(device)
+    stex = StyleExtractor(bert_type=opt.bert_model).to(device)
 
     params = list(seq2seq.parameters()) + list(stex.parameters())
     optimizer = Adam(params,lr=opt.lr)
