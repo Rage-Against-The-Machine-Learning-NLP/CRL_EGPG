@@ -1,7 +1,7 @@
 import json
 import pickle
 import torch
-from modules.Seq2Seq2 import Seq2Seq
+from modules.Seq2Seq import Seq2Seq
 from modules.StyleExtractor import StyleExtractor
 from modules.datasets import STdata
 from torch.utils.data import DataLoader
@@ -18,12 +18,12 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
 
-    parser.add_argument('--dataset', type=str, default='para',
+    parser.add_argument('--dataset', type=str, default='quora',
                         choices=['para', 'quora'], help='dataset')
     parser.add_argument('--max_len', type=int, default=15,
                         help='max_len of sentence')
     parser.add_argument('--model_save_path', type=str, default="save_model/ours_para")
-    parser.add_argument('--idx', type=int, default=30)
+    parser.add_argument('--idx', type=int, default=45)
     parser.add_argument('--idx2', type=int, default=4)
 
     opt = parser.parse_args()
@@ -51,6 +51,8 @@ stex.load_state_dict(torch.load(os.path.join(opt.model_save_path,"stex"+str(opt.
 seq2seq.eval()
 stex.eval()
 seq2seq.decoder.mode = "infer"
+def convert_ids_to_words(idx2word, id_tensor):
+    return [idx2word.get(id.item(), '<UNK>') for id in id_tensor if id.item() != 0]
 
 with open(os.path.join(opt.data_folder,'idx2word.pkl'), 'rb') as f:
     idx2word = pickle.load(f)
@@ -94,29 +96,39 @@ def pack_input(src):
 
 src_idx, in_len = pack_input(src)
 
+bert_output = bert_output[:5]
 
-with torch.no_grad():
-    count = 0
-    temp_arr = []
-    src_idx = src_idx.to(device)
-    in_len = in_len.to(device)
-    for style in bert_output:
-        bert_sim = pack_sim(style)
-        bert_sim = bert_sim.unsqueeze(0)
-        bert_sim = bert_sim.to(device)
-        style_emb = stex(bert_sim)
-        id_arr,_ = seq2seq.forward(src_idx, in_len, style_emb)
-        temp_arr.append(id_arr)
-       
+def generate_variations(input_sentence):
+    print(f"\nOriginal sentence: {input_sentence}")
+    print("-" * 50)
+    
+    src_idx, in_len = pack_input([input_sentence])
+    
+    with torch.no_grad():
+        temp_arr = []
+        src_idx = src_idx.to(device)
+        in_len = in_len.to(device)
+        for style in bert_output:
+            bert_sim = pack_sim(style)
+            bert_sim = bert_sim.unsqueeze(0)
+            bert_sim = bert_sim.to(device)
+            style_emb = stex(bert_sim)
+            id_arr, _ = seq2seq.forward(src_idx, in_len, style_emb)
+            temp_arr.append(id_arr)
 
+        # Print variations
+        for i, bat in enumerate(temp_arr):
+            for sequence in bat:
+                words = convert_ids_to_words(idx2word, sequence)
+                print(f"Variation {i+1}: {' '.join(words)}")
+                break
 
-    filename = os.path.join(opt.model_save_path,"gen"+str(opt.idx2)+".txt")
-    if os.path.exists(filename):
-        os.remove(filename)
-    with open(filename, 'a') as f:
-        for bat in temp_arr:
-            ss = seq2seq.getword(idx2word, bat)
-            for s in ss:
-                f.write(' '.join(s))
-                f.write('\n')
+sentences = [
+    "how do i develop good project management skills ?",
+    "which is the best anime to watch ?",
+    "do you want to kiss teddy ?"
+]
 
+# Process each sentence
+for sentence in sentences:
+    generate_variations(sentence)
